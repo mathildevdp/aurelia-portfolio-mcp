@@ -1,9 +1,10 @@
-import { createMcpHandler } from "mcp-handler";
+import type { AuthInfo } from "@modelcontextprotocol/server";
+import { createMcpHandler, withMcpAuth } from "mcp-handler";
 import { z } from "zod";
 
 const TRADING212_BASE_URL = "https://live.trading212.com/api/v0";
 
-function getAuthorizationHeader() {
+function getTrading212Authorization() {
   const apiKey = process.env.TRADING212_API_KEY;
   const apiSecret = process.env.TRADING212_API_SECRET;
 
@@ -22,7 +23,7 @@ async function trading212Get(path: string) {
   const response = await fetch(`${TRADING212_BASE_URL}${path}`, {
     method: "GET",
     headers: {
-      Authorization: getAuthorizationHeader(),
+      Authorization: getTrading212Authorization(),
       Accept: "application/json",
     },
     cache: "no-store",
@@ -40,13 +41,6 @@ async function trading212Get(path: string) {
 }
 
 const handler = createMcpHandler((server) => {
-  /*
-   * READ ONLY
-   *
-   * This MCP intentionally exposes no Trading 212 order,
-   * buy, sell, cancel, or modification functionality.
-   */
-
   server.registerTool(
     "get_account_summary",
     {
@@ -145,4 +139,30 @@ const handler = createMcpHandler((server) => {
   );
 });
 
-export { handler as GET, handler as POST };
+const verifyToken = async (
+  _req: Request,
+  bearerToken?: string
+): Promise<AuthInfo | undefined> => {
+  const expectedToken = process.env.AURELIA_MCP_TOKEN;
+
+  if (!expectedToken || !bearerToken) {
+    return undefined;
+  }
+
+  if (bearerToken !== expectedToken) {
+    return undefined;
+  }
+
+  return {
+    token: bearerToken,
+    scopes: ["portfolio:read"],
+    clientId: "aurelia-grok",
+  };
+};
+
+const authHandler = withMcpAuth(handler, verifyToken, {
+  required: true,
+  requiredScopes: ["portfolio:read"],
+});
+
+export { authHandler as GET, authHandler as POST };
