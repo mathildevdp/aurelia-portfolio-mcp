@@ -137,6 +137,67 @@ const handler = createMcpHandler((server) => {
       };
     }
   );
+
+  server.registerTool(
+    "get_pies",
+    {
+      title: "Get Trading 212 Pies",
+      description:
+        "List all Trading 212 pies for the account (pie id, cash, value/result metadata as returned by the broker). Read-only. Uses deprecated/unsupported Trading 212 Pie GET endpoints solely for pie identity — no mandate mapping.",
+      inputSchema: z.object({}).strict(),
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
+    },
+    async () => {
+      const pies = await trading212Get("/equity/pies");
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(pies, null, 2),
+          },
+        ],
+      };
+    }
+  );
+
+  server.registerTool(
+    "get_pie_detail",
+    {
+      title: "Get Trading 212 Pie Detail",
+      description:
+        "Fetch one Trading 212 pie by id, including settings.name and instrument membership/quantities as returned by the broker. Read-only. Uses deprecated/unsupported Trading 212 Pie GET endpoints solely for pie identity — no mandate mapping.",
+      inputSchema: z
+        .object({
+          pieId: z.number().int(),
+        })
+        .strict(),
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
+    },
+    async ({ pieId }) => {
+      const pie = await trading212Get(`/equity/pies/${pieId}`);
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(pie, null, 2),
+          },
+        ],
+      };
+    }
+  );
+
 });
 
 const verifyToken = async (
