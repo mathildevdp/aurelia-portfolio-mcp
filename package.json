@@ -8,6 +8,7 @@
     "start": "next start",
     "type-check": "tsc --noEmit",
     "lint": "eslint .",
+    "test": "node --experimental-strip-types --import ./scripts/register-ts-resolver.mjs --test lib/trading212.test.mts lib/mcp-tools.test.mts",
     "test:client": "node scripts/test-client.mjs"
   },
   "dependencies": {
